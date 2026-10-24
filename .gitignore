@@ -1,0 +1,11 @@
+.env
+__pycache__/
+.venv/
+ml/data/
+*.srt
+*.pt
+*.onnx
+.idea/
+build/
+.gradle/
+local.properties

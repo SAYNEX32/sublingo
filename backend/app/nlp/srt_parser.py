@@ -22,8 +22,7 @@ def clean_text(text: str) -> str:
     return SPACES_RE.sub(" ", text).strip()
 
 
-def read_srt_text(path: Path) -> str:
-    raw = path.read_bytes()
+def decode_srt(raw: bytes) -> str:
     for encoding in ("utf-8-sig", "cp1252"):
         try:
             return raw.decode(encoding)
@@ -32,11 +31,14 @@ def read_srt_text(path: Path) -> str:
     return raw.decode("latin-1")
 
 
-def parse_srt(path: str | Path) -> list[str]:
-    content = read_srt_text(Path(path))
+def parse_srt_content(content: str) -> list[str]:
     lines = []
     for subtitle in srt.parse(content, ignore_errors=True):
         cleaned = clean_text(subtitle.content)
         if cleaned:
             lines.append(cleaned)
     return lines
+
+
+def parse_srt(path: str | Path) -> list[str]:
+    return parse_srt_content(decode_srt(Path(path).read_bytes()))

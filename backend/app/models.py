@@ -63,3 +63,28 @@ class EpisodeLemma(Base):
 
     episode: Mapped[Episode] = relationship(back_populates="entries")
     lemma: Mapped[Lemma] = relationship()
+
+class User(Base):
+    __tablename__ = "users"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    email: Mapped[str] = mapped_column(String(255), unique=True)
+    password_hash: Mapped[str] = mapped_column(String(255))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+
+class UserWord(Base):
+    __tablename__ = "user_words"
+    __table_args__ = (UniqueConstraint("user_id", "lemma_id", name="uq_user_lemma"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    lemma_id: Mapped[int] = mapped_column(ForeignKey("lemmas.id"), index=True)
+    status: Mapped[str] = mapped_column(String(16))  # known | learning
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )

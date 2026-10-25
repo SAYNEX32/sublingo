@@ -7,6 +7,7 @@ from app.database import get_db
 from app.deps import get_current_user
 from app.models import Episode, EpisodeLemma, Lemma, User, UserWord
 from app.nlp.analyzer import analyze_lines
+from app.nlp.knowledge import p_known
 from app.nlp.srt_parser import count_words, decode_srt, parse_srt_content
 from app.services.episodes import save_analysis
 
@@ -99,6 +100,7 @@ def episode_words(
     ]
     return schemas.EpisodeWords(episode=build_episode_out(db, episode), words=words)
 
+
 @router.get("/{episode_id}/report", response_model=schemas.ReportOut)
 def episode_report(
     episode_id: int,
@@ -127,19 +129,28 @@ def episode_report(
         .order_by(EpisodeLemma.count.desc(), Lemma.zipf.asc(), Lemma.id.asc())
     ).all()
 
-    unknown = [(entry, lemma) for entry, lemma, status in rows if status != "known"]
-    unknown_occurrences = sum(entry.count for entry, _ in unknown)
-    total = episode.total_words
-    coverage = min(1.0, max(0.0, 1 - unknown_occurrences / total))
+    scored = []
+    for entry, lemma, status in rows:
+        if status == "known":
+            known_prob = 1.0
+        elif status == "learning" or user.vocab_threshold is None:
+            known_prob = 0.0
+        else:
+            known_prob = p_known(lemma.zipf, user.vocab_threshold)
+        scored.append((entry.count * (1 - known_prob), entry, lemma))
+    scored.sort(key=lambda item: -item[0])
 
-    allowed_unknown = int((1 - target) * total + 1e-9)
-    need = unknown_occurrences - allowed_unknown
+    unknown_total = sum(item[0] for item in scored)
+    total = episode.total_words
+    coverage = min(1.0, max(0.0, 1 - unknown_total / total))
+
+    need = unknown_total - (1 - target) * total
     words_to_target = None
-    if need > 0:
-        running = 0
-        for index, (entry, _) in enumerate(unknown, start=1):
-            running += entry.count
-            if running >= need:
+    if need > 1e-9:
+        running = 0.0
+        for index, (expected, _, _) in enumerate(scored, start=1):
+            running += expected
+            if running >= need - 1e-9:
                 words_to_target = index
                 break
 
@@ -153,14 +164,17 @@ def episode_report(
             count=entry.count,
             example=entry.example,
         )
-        for entry, lemma in unknown[:limit]
-    ]
+        for expected, entry, lemma in scored
+        if expected > 0
+    ][:limit]
+
     return schemas.ReportOut(
         episode=build_episode_out(db, episode),
         total_words=total,
-        unknown_occurrences=unknown_occurrences,
+        unknown_occurrences=round(unknown_total, 1),
         coverage=round(coverage, 4),
         target=target,
+        vocab_threshold=user.vocab_threshold,
         words_to_target=words_to_target,
         to_learn=to_learn,
     )

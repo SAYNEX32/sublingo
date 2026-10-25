@@ -5,7 +5,7 @@ SLOPE = 3.0
 PRIOR_MEAN = 3.5
 PRIOR_SD = 1.0
 GRID = [round(1.0 + 0.05 * step, 2) for step in range(91)]
-BANDS = [(1.5, 2.5), (2.5, 3.0), (3.0, 3.5), (3.5, 4.0), (4.0, 4.51)]
+BANDS = [(1.5, 2.5), (2.5, 3.0), (3.0, 3.5), (3.5, 4.0), (4.0, 4.51), (4.51, 5.0), (5.0, 5.7)]
 
 
 def p_known(zipf: float, threshold: float, slope: float = SLOPE) -> float:

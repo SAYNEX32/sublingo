@@ -27,9 +27,9 @@ def test_mixed_answers_give_middle_threshold():
 
 
 def test_pick_ids_spreads_over_bands():
-    candidates = [(i, 1.5 + (i % 30) * 0.1) for i in range(300)]
+    candidates = [(i, 1.5 + (i % 40) * 0.1) for i in range(400)]
     zipf_by_id = dict(candidates)
-    ids = pick_placement_ids(candidates, 30, random.Random(1))
-    assert len(ids) == 30 and len(set(ids)) == 30
+    ids = pick_placement_ids(candidates, 28, random.Random(1))
+    assert len(ids) == 28 and len(set(ids)) == 28
     for low, high in BANDS:
-        assert sum(low <= zipf_by_id[i] < high for i in ids) == 6
+        assert sum(low <= zipf_by_id[i] < high for i in ids) == 4

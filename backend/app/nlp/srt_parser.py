@@ -42,3 +42,9 @@ def parse_srt_content(content: str) -> list[str]:
 
 def parse_srt(path: str | Path) -> list[str]:
     return parse_srt_content(decode_srt(Path(path).read_bytes()))
+
+WORD_RE = re.compile(r"[A-Za-z]+(?:'[A-Za-z]+)?")
+
+
+def count_words(lines: list[str]) -> int:
+    return sum(len(WORD_RE.findall(line)) for line in lines)

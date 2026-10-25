@@ -24,6 +24,7 @@ def save_analysis(
     season: int | None,
     number: int | None,
     subtitle_lines: int,
+    total_words: int,
     stats: list[LemmaStat],
     phrasal: list[tuple[str, int]],
 ) -> Episode:
@@ -41,7 +42,7 @@ def save_analysis(
         db.flush()
 
     episode = Episode(
-        title_id=title.id, season=season, number=number, subtitle_lines=subtitle_lines
+        title_id=title.id, season=season, number=number, subtitle_lines=subtitle_lines, total_words=total_words
     )
     db.add(episode)
     db.flush()

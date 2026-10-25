@@ -1,12 +1,13 @@
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
-from sqlalchemy import func, select
+from sqlalchemy import and_, func, select
 from sqlalchemy.orm import Session
 
 from app import schemas
 from app.database import get_db
-from app.models import Episode, EpisodeLemma, Lemma
+from app.deps import get_current_user
+from app.models import Episode, EpisodeLemma, Lemma, User, UserWord
 from app.nlp.analyzer import analyze_lines
-from app.nlp.srt_parser import decode_srt, parse_srt_content
+from app.nlp.srt_parser import count_words, decode_srt, parse_srt_content
 from app.services.episodes import save_analysis
 
 router = APIRouter(prefix="/episodes", tags=["episodes"])
@@ -47,7 +48,9 @@ def analyze_episode(
         raise HTTPException(status_code=422, detail="No subtitle text found")
 
     stats, phrasal = analyze_lines(lines)
-    episode = save_analysis(db, title.strip(), season, number, len(lines), stats, phrasal)
+    episode = save_analysis(
+        db, title.strip(), season, number, len(lines), count_words(lines), stats, phrasal
+    )
     return build_episode_out(db, episode)
 
 
@@ -77,13 +80,14 @@ def episode_words(
     if pos:
         query = query.where(Lemma.pos == pos.upper())
     query = (
-        query.order_by(EpisodeLemma.count.desc(), Lemma.zipf.asc())
+        query.order_by(EpisodeLemma.count.desc(), Lemma.zipf.asc(), Lemma.id.asc())
         .limit(limit)
         .offset(offset)
     )
 
     words = [
         schemas.WordOut(
+            lemma_id=lemma.id,
             lemma=lemma.text,
             pos=lemma.pos,
             level=lemma.level,
@@ -94,3 +98,69 @@ def episode_words(
         for entry, lemma in db.execute(query).all()
     ]
     return schemas.EpisodeWords(episode=build_episode_out(db, episode), words=words)
+
+@router.get("/{episode_id}/report", response_model=schemas.ReportOut)
+def episode_report(
+    episode_id: int,
+    limit: int = Query(50, ge=1, le=500),
+    target: float = Query(0.95, ge=0.5, le=1.0),
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    episode = db.get(Episode, episode_id)
+    if episode is None:
+        raise HTTPException(status_code=404, detail="Episode not found")
+    if episode.total_words <= 0:
+        raise HTTPException(
+            status_code=409,
+            detail="Episode has no word total; upload it again",
+        )
+
+    rows = db.execute(
+        select(EpisodeLemma, Lemma, UserWord.status)
+        .join(Lemma, Lemma.id == EpisodeLemma.lemma_id)
+        .outerjoin(
+            UserWord,
+            and_(UserWord.lemma_id == Lemma.id, UserWord.user_id == user.id),
+        )
+        .where(EpisodeLemma.episode_id == episode_id, Lemma.pos != "PHRASAL")
+        .order_by(EpisodeLemma.count.desc(), Lemma.zipf.asc(), Lemma.id.asc())
+    ).all()
+
+    unknown = [(entry, lemma) for entry, lemma, status in rows if status != "known"]
+    unknown_occurrences = sum(entry.count for entry, _ in unknown)
+    total = episode.total_words
+    coverage = min(1.0, max(0.0, 1 - unknown_occurrences / total))
+
+    allowed_unknown = int((1 - target) * total + 1e-9)
+    need = unknown_occurrences - allowed_unknown
+    words_to_target = None
+    if need > 0:
+        running = 0
+        for index, (entry, _) in enumerate(unknown, start=1):
+            running += entry.count
+            if running >= need:
+                words_to_target = index
+                break
+
+    to_learn = [
+        schemas.WordOut(
+            lemma_id=lemma.id,
+            lemma=lemma.text,
+            pos=lemma.pos,
+            level=lemma.level,
+            zipf=lemma.zipf,
+            count=entry.count,
+            example=entry.example,
+        )
+        for entry, lemma in unknown[:limit]
+    ]
+    return schemas.ReportOut(
+        episode=build_episode_out(db, episode),
+        total_words=total,
+        unknown_occurrences=unknown_occurrences,
+        coverage=round(coverage, 4),
+        target=target,
+        words_to_target=words_to_target,
+        to_learn=to_learn,
+    )

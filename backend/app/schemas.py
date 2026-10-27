@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Literal
 
 from pydantic import BaseModel, Field
@@ -72,3 +73,31 @@ class PlacementResult(BaseModel):
     vocab_threshold: float
     answers_used: int
     known_count: int
+
+class OptionOut(BaseModel):
+    lemma_id: int
+    text: str
+
+
+class ExerciseOut(BaseModel):
+    id: int
+    kind: str
+    sentence: str
+    options: list[OptionOut]
+    is_new: bool
+
+
+class AnswerIn(BaseModel):
+    lemma_id: int
+    response_ms: int | None = Field(None, ge=0, le=600000)
+
+
+class AnswerOut(BaseModel):
+    correct: bool
+    correct_lemma_id: int
+    correct_lemma: str
+    answer_form: str
+    sentence: str
+    status: str
+    interval_days: int
+    next_review: datetime

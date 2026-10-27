@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, UniqueConstraint, func
+from sqlalchemy import JSON, Boolean, DateTime, Float, ForeignKey, Integer, String, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -87,6 +87,10 @@ class UserWord(Base):
     )
     lemma_id: Mapped[int] = mapped_column(ForeignKey("lemmas.id"), index=True)
     status: Mapped[str] = mapped_column(String(16))  # known | learning
+    ease: Mapped[float] = mapped_column(Float, default=2.5, server_default="2.5")
+    repetitions: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    interval_days: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    next_review: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
@@ -104,3 +108,24 @@ class PlacementAnswer(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
+
+class Exercise(Base):
+    __tablename__ = "exercises"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    lemma_id: Mapped[int] = mapped_column(ForeignKey("lemmas.id"), index=True)
+    kind: Mapped[str] = mapped_column(String(16), default="cloze")
+    sentence: Mapped[str] = mapped_column(String(400))
+    blanked: Mapped[str] = mapped_column(String(400))
+    answer_form: Mapped[str] = mapped_column(String(64))
+    options: Mapped[list] = mapped_column(JSON)
+    chosen_lemma_id: Mapped[int | None]
+    correct: Mapped[bool | None]
+    response_ms: Mapped[int | None]
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    answered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

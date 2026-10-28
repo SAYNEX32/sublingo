@@ -11,14 +11,18 @@ sealed interface ApiResult<out T> {
 
 suspend fun <T> safeApiCall(
     unauthorizedMessage: String = "Сессия истекла, войдите снова",
+    validationMessage: String = "Проверьте введённые данные",
+    conflictMessage: String = "Конфликт данных",
     block: suspend () -> T,
 ): ApiResult<T> = try {
     ApiResult.Success(block())
 } catch (e: HttpException) {
     val message = when (e.code()) {
         401 -> unauthorizedMessage
-        409 -> "Этот email уже зарегистрирован"
-        422 -> "Проверьте данные: пароль должен содержать минимум 8 символов"
+        404 -> "Не найдено"
+        409 -> conflictMessage
+        413 -> "Файл слишком большой (максимум 2 МБ)"
+        422 -> validationMessage
         else -> "Ошибка сервера (${e.code()})"
     }
     ApiResult.Error(message, e.code())

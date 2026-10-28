@@ -21,7 +21,10 @@ class AuthRepository(
         }
 
     suspend fun register(email: String, password: String): ApiResult<Unit> {
-        val created = safeApiCall { api.register(RegisterRequest(email, password)) }
+        val created = safeApiCall(
+            validationMessage = "Проверьте email и пароль (минимум 8 символов)",
+            conflictMessage = "Этот email уже зарегистрирован",
+        ) { api.register(RegisterRequest(email, password)) }
         return when (created) {
             is ApiResult.Success -> login(email, password)
             is ApiResult.Error -> created

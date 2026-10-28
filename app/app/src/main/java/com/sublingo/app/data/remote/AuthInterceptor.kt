@@ -15,6 +15,10 @@ class AuthInterceptor(private val tokenStore: TokenStore) : Interceptor {
         } else {
             chain.request()
         }
-        return chain.proceed(request)
+        val response = chain.proceed(request)
+        if (token != null && response.code == 401) {
+            runBlocking { tokenStore.clear() }
+        }
+        return response
     }
 }

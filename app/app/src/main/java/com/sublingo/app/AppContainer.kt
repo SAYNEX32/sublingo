@@ -6,6 +6,7 @@ import com.sublingo.app.data.remote.ApiConfig
 import com.sublingo.app.data.remote.ApiService
 import com.sublingo.app.data.remote.AuthInterceptor
 import com.sublingo.app.data.repository.AuthRepository
+import com.sublingo.app.data.repository.EpisodeRepository
 import java.util.concurrent.TimeUnit
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
@@ -37,4 +38,5 @@ class AppContainer(context: Context) {
     private val api: ApiService = retrofit.create(ApiService::class.java)
 
     val authRepository = AuthRepository(api, tokenStore)
+    val episodeRepository = EpisodeRepository(api, context.applicationContext)
 }

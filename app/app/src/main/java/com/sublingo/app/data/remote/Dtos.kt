@@ -14,3 +14,36 @@ data class TokenDto(
     @SerialName("access_token") val accessToken: String,
     @SerialName("token_type") val tokenType: String = "bearer",
 )
+
+@Serializable
+data class EpisodeDto(
+    val id: Int,
+    val title: String,
+    val season: Int? = null,
+    val number: Int? = null,
+    @SerialName("subtitle_lines") val subtitleLines: Int = 0,
+    @SerialName("word_count") val wordCount: Int = 0,
+)
+
+@Serializable
+data class WordDto(
+    @SerialName("lemma_id") val lemmaId: Int,
+    val lemma: String,
+    val pos: String,
+    val level: String? = null,
+    val zipf: Double = 0.0,
+    val count: Int = 0,
+    val example: String = "",
+)
+
+@Serializable
+data class ReportDto(
+    val episode: EpisodeDto,
+    @SerialName("total_words") val totalWords: Int,
+    @SerialName("unknown_occurrences") val unknownOccurrences: Double,
+    val coverage: Double,
+    val target: Double,
+    @SerialName("vocab_threshold") val vocabThreshold: Double? = null,
+    @SerialName("words_to_target") val wordsToTarget: Int? = null,
+    @SerialName("to_learn") val toLearn: List<WordDto> = emptyList(),
+)

@@ -7,6 +7,7 @@ from app.models import EpisodeLemma, Exercise, Lemma, User
 from app.nlp.analyzer import get_nlp
 
 BLANK = "_____"
+MIN_CONTEXT_WORDS = 3
 MIN_SENTENCE_LEN = 15
 MAX_SENTENCE_LEN = 250
 ZIPF_WINDOW = 0.7
@@ -14,16 +15,31 @@ BLOCKED_DISTRACTORS = {"asshole", "goddamn", "lettin"}
 
 
 def make_blank(sentence: str, lemma_text: str) -> tuple[str, str] | None:
-    """Replace the word with a blank; returns (blanked sentence, original form)."""
-    doc = get_nlp()(sentence)
-    for token in doc:
-        if not token.is_alpha:
-            continue
-        if token.lemma_.lower() == lemma_text or token.text.lower() == lemma_text:
-            end = token.idx + len(token.text)
-            return sentence[: token.idx] + BLANK + sentence[end:], token.text
-    return None
+    """Replace every form of the word with a blank.
 
+    Returns (blanked sentence, first original form) or None when the sentence
+    does not contain the word or has too little context around it.
+    """
+    doc = get_nlp()(sentence)
+    matches = [
+        token
+        for token in doc
+        if token.is_alpha
+        and (token.lemma_.lower() == lemma_text or token.text.lower() == lemma_text)
+    ]
+    if not matches:
+        return None
+
+    match_ids = {token.i for token in matches}
+    context = sum(1 for token in doc if token.is_alpha and token.i not in match_ids)
+    if context < MIN_CONTEXT_WORDS:
+        return None
+
+    blanked = sentence
+    for token in reversed(matches):
+        end = token.idx + len(token.text)
+        blanked = blanked[: token.idx] + BLANK + blanked[end:]
+    return blanked, matches[0].text
 
 def find_sentence(db: Session, lemma_id: int, episode_id: int) -> str | None:
     rows = db.execute(

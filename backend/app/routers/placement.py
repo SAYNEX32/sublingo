@@ -8,7 +8,9 @@ from app import schemas
 from app.database import get_db
 from app.deps import get_current_user
 from app.models import Lemma, PlacementAnswer, User, UserWord
+from app.nlp.analyzer import is_spoken_variant
 from app.nlp.knowledge import estimate_threshold, pick_placement_ids
+from app.services.exercises import BLOCKED_DISTRACTORS
 
 router = APIRouter(prefix="/placement", tags=["placement"])
 
@@ -22,9 +24,9 @@ def placement_words(
     db: Session = Depends(get_db),
 ):
     rows = db.execute(
-        select(Lemma.id, Lemma.zipf).where(Lemma.pos != "PHRASAL", Lemma.zipf >= 1.5)
+        select(Lemma.id, Lemma.zipf, Lemma.text).where(Lemma.pos != "PHRASAL", Lemma.zipf >= 1.5)
     ).all()
-    candidates = [(row.id, row.zipf) for row in rows]
+    candidates = [(row.id, row.zipf) for row in rows if not is_spoken_variant(row.text) and row.text not in BLOCKED_DISTRACTORS]
     if len(candidates) < n:
         raise HTTPException(
             status_code=409, detail="Not enough analyzed words; analyze an episode first"

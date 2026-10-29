@@ -29,6 +29,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sublingo.app.data.remote.ReportDto
@@ -41,9 +43,11 @@ import kotlin.math.roundToInt
 @Composable
 fun ReportScreen(
     onBack: () -> Unit,
+    onStartExercises: (Int) -> Unit,
     viewModel: ReportViewModel = viewModel(factory = AppViewModelProvider.Factory),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.load() }
 
     Scaffold(
         topBar = {
@@ -59,7 +63,7 @@ fun ReportScreen(
                 state.loading -> CircularProgressIndicator(
                     modifier = Modifier.align(Alignment.Center)
                 )
-                report != null -> ReportContent(report)
+                report != null -> ReportContent(report, onStartExercises)
                 else -> Column(
                     modifier = Modifier.align(Alignment.Center).padding(24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
@@ -74,7 +78,7 @@ fun ReportScreen(
 }
 
 @Composable
-private fun ReportContent(report: ReportDto) {
+private fun ReportContent(report: ReportDto, onStartExercises: (Int) -> Unit) {
     val percent = String.format(Locale.getDefault(), "%.1f%%", report.coverage * 100)
     val targetPercent = (report.target * 100).roundToInt()
 
@@ -109,6 +113,11 @@ private fun ReportContent(report: ReportDto) {
                         style = MaterialTheme.typography.bodySmall,
                     )
                 }
+                Spacer(Modifier.height(16.dp))
+                Button(
+                    onClick = { onStartExercises(report.episode.id) },
+                    modifier = Modifier.fillMaxWidth(),
+                ) { Text("Начать упражнения") }
                 Spacer(Modifier.height(16.dp))
                 Text("Слова для изучения", style = MaterialTheme.typography.titleLarge)
             }

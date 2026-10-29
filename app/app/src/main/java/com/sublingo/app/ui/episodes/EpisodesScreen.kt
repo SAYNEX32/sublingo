@@ -49,6 +49,7 @@ import com.sublingo.app.ui.AppViewModelProvider
 @Composable
 fun EpisodesScreen(
     onOpenReport: (Int) -> Unit,
+    onOpenPlacement: () -> Unit,
     onLogout: () -> Unit,
     viewModel: EpisodesViewModel = viewModel(factory = AppViewModelProvider.Factory),
 ) {
@@ -69,7 +70,10 @@ fun EpisodesScreen(
         topBar = {
             TopAppBar(
                 title = { Text("Мои серии") },
-                actions = { TextButton(onClick = onLogout) { Text("Выйти") } },
+                actions = {
+                    TextButton(onClick = onOpenPlacement) { Text("Тест уровня") }
+                    TextButton(onClick = onLogout) { Text("Выйти") }
+                },
             )
         },
         floatingActionButton = {

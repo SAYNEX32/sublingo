@@ -17,6 +17,19 @@ def get_nlp():
     return _nlp
 
 
+SPOKEN_SHORT = {"goin", "doin"}
+
+
+def is_spoken_variant(lemma: str) -> bool:
+    """Spoken spelling like "fuckin" or "nothin" for "fucking" or "nothing"."""
+    if lemma in SPOKEN_SHORT:
+        return True
+    if len(lemma) < 5 or not lemma.endswith("in"):
+        return False
+    base = zipf_frequency(lemma + "g", "en")
+    return base >= 4.5 and base - zipf_frequency(lemma, "en") >= 1.0
+
+
 def rough_level(zipf: float) -> str:
     """Baseline difficulty estimate from word frequency (not real CEFR)."""
     if zipf >= 4.2:
@@ -66,6 +79,8 @@ def analyze_lines(
             if token.ent_type_ in SKIP_ENTITIES:
                 continue
             lemma = token.lemma_.lower()
+            if is_spoken_variant(lemma):
+                continue
             if len(lemma) < 3:
                 continue
 

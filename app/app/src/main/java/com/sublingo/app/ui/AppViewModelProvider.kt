@@ -8,6 +8,8 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.sublingo.app.SubLingoApp
 import com.sublingo.app.ui.auth.AuthViewModel
 import com.sublingo.app.ui.episodes.EpisodesViewModel
+import com.sublingo.app.ui.exercises.ExerciseViewModel
+import com.sublingo.app.ui.placement.PlacementViewModel
 import com.sublingo.app.ui.report.ReportViewModel
 
 object AppViewModelProvider {
@@ -18,6 +20,13 @@ object AppViewModelProvider {
         initializer {
             ReportViewModel(
                 subLingoApp().container.episodeRepository,
+                createSavedStateHandle(),
+            )
+        }
+        initializer { PlacementViewModel(subLingoApp().container.learningRepository) }
+        initializer {
+            ExerciseViewModel(
+                subLingoApp().container.learningRepository,
                 createSavedStateHandle(),
             )
         }

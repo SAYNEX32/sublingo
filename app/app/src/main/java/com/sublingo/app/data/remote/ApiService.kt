@@ -2,6 +2,7 @@ package com.sublingo.app.data.remote
 
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
+import okhttp3.ResponseBody
 import retrofit2.http.Body
 import retrofit2.http.Field
 import retrofit2.http.FormUrlEncoded
@@ -44,4 +45,21 @@ interface ApiService {
         @Query("limit") limit: Int,
         @Query("target") target: Double,
     ): ReportDto
+
+    @GET("placement/words")
+    suspend fun placementWords(@Query("n") n: Int): List<PlacementWordDto>
+
+    @POST("placement/submit")
+    suspend fun placementSubmit(@Body body: PlacementSubmitRequest): PlacementResultDto
+
+    // The server answers with JSON null when there is nothing to practise,
+    // so the body is parsed manually into ExerciseDto?
+    @GET("exercises/next")
+    suspend fun nextExercise(@Query("episode_id") episodeId: Int): ResponseBody
+
+    @POST("exercises/{id}/answer")
+    suspend fun answerExercise(
+        @Path("id") id: Int,
+        @Body body: AnswerRequest,
+    ): AnswerResultDto
 }

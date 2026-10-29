@@ -8,6 +8,7 @@ from app.deps import get_current_user
 from app.models import Episode, EpisodeLemma, Lemma, User, UserWord
 from app.nlp.analyzer import analyze_lines
 from app.nlp.knowledge import p_known
+from app.services.srs import GRADUATE_DAYS
 from app.nlp.srt_parser import count_words, decode_srt, parse_srt_content
 from app.services.episodes import save_analysis
 
@@ -119,7 +120,7 @@ def episode_report(
         )
 
     rows = db.execute(
-        select(EpisodeLemma, Lemma, UserWord.status)
+        select(EpisodeLemma, Lemma, UserWord.status, UserWord.interval_days)
         .join(Lemma, Lemma.id == EpisodeLemma.lemma_id)
         .outerjoin(
             UserWord,
@@ -130,13 +131,16 @@ def episode_report(
     ).all()
 
     scored = []
-    for entry, lemma, status in rows:
+    for entry, lemma, status, interval_days in rows:
         if status == "known":
             known_prob = 1.0
-        elif status == "learning" or user.vocab_threshold is None:
+        elif user.vocab_threshold is None:
             known_prob = 0.0
         else:
             known_prob = p_known(lemma.zipf, user.vocab_threshold)
+        if status == "learning":
+            progress = min(0.95, (interval_days or 0) / GRADUATE_DAYS)
+            known_prob = max(known_prob, progress)
         scored.append((entry.count * (1 - known_prob), entry, lemma))
     scored.sort(key=lambda item: -item[0])
 

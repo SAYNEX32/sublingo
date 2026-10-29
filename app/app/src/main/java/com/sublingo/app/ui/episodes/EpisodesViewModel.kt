@@ -124,5 +124,15 @@ class EpisodesViewModel(private val repository: EpisodeRepository) : ViewModel()
     fun consumeMessage() = _state.update { it.copy(message = null) }
 
     private fun guessTitle(fileName: String): String =
-        fileName.removeSuffix(".srt").replace('.', ' ').replace('_', ' ').trim()
+        cleanTitle(fileName)
+}
+
+private val NOISE_REGEX = Regex(
+    """(?i)\b(480p|720p|1080p|2160p|4k|bluray|brrip|bdrip|webrip|web-dl|hdrip|dvdrip|x264|x265|h264|h265|hevc|yify|yts|utf8|eng?)\b.*$"""
+)
+private val YEAR_REGEX = Regex("""\s*\(?\b(19|20)\d{2}\b\)?\s*$""")
+
+private fun cleanTitle(fileName: String): String {
+    val base = fileName.removeSuffix(".srt").replace('.', ' ').replace('_', ' ').trim()
+    return base.replace(NOISE_REGEX, "").replace(YEAR_REGEX, "").trim().ifEmpty { base }
 }

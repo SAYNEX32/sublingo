@@ -7,6 +7,7 @@ import com.sublingo.app.data.remote.ApiService
 import com.sublingo.app.data.remote.AuthInterceptor
 import com.sublingo.app.data.repository.AuthRepository
 import com.sublingo.app.data.repository.EpisodeRepository
+import com.sublingo.app.data.repository.LearningRepository
 import java.util.concurrent.TimeUnit
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
@@ -39,4 +40,5 @@ class AppContainer(context: Context) {
 
     val authRepository = AuthRepository(api, tokenStore)
     val episodeRepository = EpisodeRepository(api, context.applicationContext)
+    val learningRepository = LearningRepository(api, json)
 }

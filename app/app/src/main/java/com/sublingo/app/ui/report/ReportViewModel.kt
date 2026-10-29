@@ -27,13 +27,10 @@ class ReportViewModel(
     private val _state = MutableStateFlow(ReportUiState())
     val state: StateFlow<ReportUiState> = _state.asStateFlow()
 
-    init {
-        load()
-    }
-
+    // Called on every screen resume, so the report refreshes after exercises
     fun load() {
         viewModelScope.launch {
-            _state.update { it.copy(loading = true, error = null) }
+            _state.update { it.copy(loading = it.report == null, error = null) }
             when (val result = repository.report(episodeId)) {
                 is ApiResult.Success -> _state.update {
                     it.copy(loading = false, report = result.value)

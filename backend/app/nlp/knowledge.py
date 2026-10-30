@@ -1,7 +1,7 @@
 import math
 import random
 
-SLOPE = 3.0
+SLOPE = 1.0
 PRIOR_MEAN = 3.5
 PRIOR_SD = 1.0
 GRID = [round(1.0 + 0.05 * step, 2) for step in range(91)]
@@ -13,14 +13,14 @@ def p_known(zipf: float, threshold: float, slope: float = SLOPE) -> float:
     return 1 / (1 + math.exp(-slope * (zipf - threshold)))
 
 
-def estimate_threshold(answers: list[tuple[float, bool]]) -> float:
+def estimate_threshold(answers: list[tuple[float, bool]], slope: float = SLOPE) -> float:
     """MAP estimate of the user's threshold from (zipf, known) answers."""
     best_threshold = PRIOR_MEAN
     best_score = -math.inf
     for threshold in GRID:
         score = -((threshold - PRIOR_MEAN) ** 2) / (2 * PRIOR_SD**2)
         for zipf, known in answers:
-            p = min(max(p_known(zipf, threshold), 1e-6), 1 - 1e-6)
+            p = min(max(p_known(zipf, threshold, slope), 1e-6), 1 - 1e-6)
             score += math.log(p if known else 1 - p)
         if score > best_score:
             best_threshold, best_score = threshold, score

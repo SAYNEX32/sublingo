@@ -94,6 +94,14 @@ def placement_submit(
             else:
                 db.add(UserWord(user_id=user.id, lemma_id=lemma_id, status="known"))
 
+    db.flush()
+    history = db.execute(
+        select(PlacementAnswer.lemma_id, PlacementAnswer.zipf, PlacementAnswer.known)
+        .where(PlacementAnswer.user_id == user.id)
+        .order_by(PlacementAnswer.id)
+    ).all()
+    latest = {row.lemma_id: (row.zipf, row.known) for row in history}
+    threshold = estimate_threshold(list(latest.values()))
     user.vocab_threshold = threshold
     db.commit()
     return schemas.PlacementResult(

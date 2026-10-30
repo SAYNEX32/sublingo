@@ -22,7 +22,7 @@ from sklearn.pipeline import make_pipeline  # noqa: E402
 from sklearn.preprocessing import StandardScaler  # noqa: E402
 
 from app.ml.features import FEATURE_SETS, add_features  # noqa: E402
-from app.nlp.knowledge import estimate_threshold, p_known  # noqa: E402
+from app.nlp.knowledge import SLOPE, estimate_threshold, p_known  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[3]
 DATA_PATH = ROOT / "ml" / "data" / "out" / "knowledge_dataset.csv"
@@ -32,14 +32,18 @@ MIN_ROWS = 60
 
 
 class AppFormula:
-    """The model used in the app: sigmoid(3 * (zipf - t)), t fitted on the answers."""
+    """The model used in the app: sigmoid(slope * (zipf - t)), t fitted on the answers."""
+
+    def __init__(self, slope: float = SLOPE):
+        self.slope = slope
 
     def fit(self, X, y):
-        self.threshold_ = estimate_threshold(list(zip(X["zipf"], np.asarray(y).astype(bool))))
+        answers = list(zip(X["zipf"], np.asarray(y).astype(bool)))
+        self.threshold_ = estimate_threshold(answers, self.slope)
         return self
 
     def predict_proba(self, X):
-        p = np.array([p_known(zipf, self.threshold_) for zipf in X["zipf"]])
+        p = np.array([p_known(zipf, self.threshold_, self.slope) for zipf in X["zipf"]])
         return np.column_stack([1 - p, p])
 
 
@@ -49,7 +53,10 @@ def make_models():
 
     return {
         "prior (no features)": ("frequency", lambda: DummyClassifier(strategy="prior")),
-        "app formula (fixed slope)": ("frequency", AppFormula),
+        **{
+            f"app formula (slope {slope})": ("frequency", lambda slope=slope: AppFormula(slope))
+            for slope in (0.75, 1.0, 1.5, 2.0, 3.0)
+        },
         "logreg: frequency": ("frequency", logreg),
         "logreg: frequency+form": ("frequency+form", logreg),
         "logreg: frequency+cognate": ("frequency+cognate", logreg),
@@ -138,7 +145,7 @@ def save_markdown(summary: pd.DataFrame, info: str) -> None:
 
 
 def plot_auc(summary: pd.DataFrame) -> None:
-    fig, ax = plt.subplots(figsize=(8, 4.5))
+    fig, ax = plt.subplots(figsize=(8, 0.5 * len(summary) + 1.5))
     positions = np.arange(len(summary))
     ax.barh(positions, summary["auc"], xerr=summary["auc_std"], color="#4c6aa8")
     ax.axvline(0.5, color="gray", linestyle="--", linewidth=1)

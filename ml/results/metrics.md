@@ -3,7 +3,11 @@ Data: 240 labels, 238 distinct words, 2 user(s), 27% known. Source: placement. 2
 | Model | AUC | Log-loss | Brier |
 |---|---|---|---|
 | prior (no features) | 0.500 ± 0.000 | 0.584 ± 0.000 | 0.197 |
-| app formula (fixed slope) | 0.774 ± 0.001 | 0.620 ± 0.002 | 0.172 |
+| app formula (slope 0.75) | 0.774 ± 0.001 | 0.499 ± 0.000 | 0.162 |
+| app formula (slope 1.0) | 0.774 ± 0.001 | 0.491 ± 0.000 | 0.159 |
+| app formula (slope 1.5) | 0.774 ± 0.001 | 0.498 ± 0.001 | 0.158 |
+| app formula (slope 2.0) | 0.774 ± 0.001 | 0.527 ± 0.001 | 0.162 |
+| app formula (slope 3.0) | 0.774 ± 0.001 | 0.620 ± 0.002 | 0.172 |
 | logreg: frequency | 0.769 ± 0.004 | 0.497 ± 0.004 | 0.159 |
 | logreg: frequency+form | 0.762 ± 0.012 | 0.500 ± 0.010 | 0.163 |
 | logreg: frequency+cognate | 0.760 ± 0.005 | 0.504 ± 0.006 | 0.162 |
@@ -17,7 +21,11 @@ Bootstrap 95% intervals over words (1000 draws). A difference counts as real onl
 | Model | AUC 95% interval | AUC difference vs logreg: frequency |
 |---|---|---|
 | prior (no features) | 0.500 to 0.500 | -0.269 (-0.333 to -0.197) |
-| app formula (fixed slope) | 0.704 to 0.839 | +0.006 (+0.003 to +0.010) |
+| app formula (slope 0.75) | 0.704 to 0.839 | +0.006 (+0.002 to +0.010) |
+| app formula (slope 1.0) | 0.705 to 0.838 | +0.006 (+0.003 to +0.010) |
+| app formula (slope 1.5) | 0.705 to 0.839 | +0.006 (+0.003 to +0.010) |
+| app formula (slope 2.0) | 0.704 to 0.839 | +0.006 (+0.003 to +0.010) |
+| app formula (slope 3.0) | 0.704 to 0.839 | +0.006 (+0.003 to +0.010) |
 | logreg: frequency | 0.697 to 0.833 | +0.000 (+0.000 to +0.000) |
 | logreg: frequency+form | 0.700 to 0.835 | +0.000 (-0.038 to +0.035) |
 | logreg: frequency+cognate | 0.690 to 0.825 | -0.008 (-0.012 to -0.005) |

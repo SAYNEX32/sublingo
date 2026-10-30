@@ -1,6 +1,7 @@
 from sqlalchemy import select
 
-from app.models import Lemma, User
+from app.models import Lemma, PlacementAnswer, User
+from app.nlp.knowledge import estimate_threshold
 from test_report import auth_headers, seed_episode
 
 
@@ -63,3 +64,25 @@ def test_placement_offers_new_words(client):
     client.post("/placement/submit", json={"answers": answers}, headers=headers)
     second = client.get("/placement/words?n=20", headers=headers).json()
     assert not {w["lemma_id"] for w in first} & {w["lemma_id"] for w in second}
+
+def test_placement_threshold_uses_all_answers(client):
+    headers = auth_headers(client)
+    seed_lemmas(client)
+    with client.testing_session() as db:
+        zipf_by_id = {lemma.id: lemma.zipf for lemma in db.scalars(select(Lemma))}
+
+    result = None
+    for _ in range(2):
+        words = client.get("/placement/words?n=20", headers=headers).json()
+        answers = [
+            {"lemma_id": w["lemma_id"], "known": zipf_by_id[w["lemma_id"]] >= 3.25}
+            for w in words
+        ]
+        result = client.post(
+            "/placement/submit", json={"answers": answers}, headers=headers
+        ).json()
+
+    with client.testing_session() as db:
+        rows = db.execute(select(PlacementAnswer.zipf, PlacementAnswer.known)).all()
+    assert len(rows) == 40
+    assert result["vocab_threshold"] == estimate_threshold([(z, k) for z, k in rows])

@@ -54,3 +54,12 @@ def test_report_uses_vocab_threshold(client):
     assert data["unknown_occurrences"] == 10.0
     assert data["coverage"] == 0.9
     assert data["vocab_threshold"] == 3.0
+
+def test_placement_offers_new_words(client):
+    headers = auth_headers(client)
+    seed_lemmas(client)
+    first = client.get("/placement/words?n=20", headers=headers).json()
+    answers = [{"lemma_id": word["lemma_id"], "known": True} for word in first]
+    client.post("/placement/submit", json={"answers": answers}, headers=headers)
+    second = client.get("/placement/words?n=20", headers=headers).json()
+    assert not {w["lemma_id"] for w in first} & {w["lemma_id"] for w in second}

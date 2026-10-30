@@ -27,6 +27,12 @@ def placement_words(
         select(Lemma.id, Lemma.zipf, Lemma.text).where(Lemma.pos != "PHRASAL", Lemma.zipf >= 1.5)
     ).all()
     candidates = [(row.id, row.zipf) for row in rows if not is_spoken_variant(row.text) and row.text not in BLOCKED_DISTRACTORS]
+    answered = set(
+        db.scalars(select(PlacementAnswer.lemma_id).where(PlacementAnswer.user_id == user.id))
+    )
+    fresh = [item for item in candidates if item[0] not in answered]
+    if len(fresh) >= n:
+        candidates = fresh
     if len(candidates) < n:
         raise HTTPException(
             status_code=409, detail="Not enough analyzed words; analyze an episode first"

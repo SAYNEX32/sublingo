@@ -15,7 +15,12 @@
 3. Получаете отчёт: «Вы понимаете примерно 94%. Чтобы понимать 95%, выучите N слов» и список слов с примерами из серии.
 4. Тренируете слова: предложение с пропуском, четыре варианта ответа, повторения по расписанию.
 
-<!-- TODO: добавьте скриншоты: список серий, отчёт, тест уровня, упражнение -->
+<p align="center">
+  <img src="docs/screenshots/episodes-list.png" width="24%" alt="Список серий">
+  <img src="docs/screenshots/report.png" width="24%" alt="Отчёт по серии">
+  <img src="docs/screenshots/placement-test.png" width="24%" alt="Тест уровня">
+  <img src="docs/screenshots/exercise.png" width="24%" alt="Упражнение">
+</p>
 
 ## Как это работает
 
@@ -58,7 +63,7 @@ sublingo/
 ├── ml/
 │   ├── labels/           размеченный вручную список слов для проверки признака когнатности
 │   └── results/          таблицы метрик и графики
-├── docs/                 описание MVP, схемы
+├── docs/                 описание MVP, схемы,  скриншоты (docs/screenshots/)
 └── docker-compose.yml    PostgreSQL
 ```
 

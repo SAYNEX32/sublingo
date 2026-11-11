@@ -33,18 +33,28 @@ class EpisodesViewModel(private val repository: EpisodeRepository) : ViewModel()
     private var pendingFile: PickedFile? = null
 
     init {
+        viewModelScope.launch {
+            repository.episodes.collect { items ->
+                _state.update { it.copy(episodes = items) }
+            }
+        }
         refresh()
     }
 
     fun refresh() {
         viewModelScope.launch {
             _state.update { it.copy(loading = true, error = null) }
-            when (val result = repository.list()) {
+            when (val result = repository.refreshEpisodes()) {
                 is ApiResult.Success -> _state.update {
-                    it.copy(episodes = result.value, loading = false)
+                    it.copy(loading = false)
                 }
                 is ApiResult.Error -> _state.update {
-                    it.copy(loading = false, error = result.message)
+                    it.copy(
+                        loading = false,
+                        error = if (it.episodes.isEmpty()) result.message else null,
+                        message = if (it.episodes.isEmpty()) it.message
+                        else "Нет связи с сервером. Показаны сохранённые данные",
+                    )
                 }
             }
         }

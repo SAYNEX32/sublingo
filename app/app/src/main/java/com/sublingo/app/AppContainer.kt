@@ -1,6 +1,8 @@
 package com.sublingo.app
 
 import android.content.Context
+import androidx.room.Room
+import com.sublingo.app.data.local.AppDatabase
 import com.sublingo.app.data.local.TokenStore
 import com.sublingo.app.data.remote.ApiConfig
 import com.sublingo.app.data.remote.ApiService
@@ -21,6 +23,10 @@ class AppContainer(context: Context) {
 
     private val json = Json { ignoreUnknownKeys = true }
 
+    private val database: AppDatabase = Room
+        .databaseBuilder(context.applicationContext, AppDatabase::class.java, "sublingo.db")
+        .build()
+
     private val client = OkHttpClient.Builder()
         .addInterceptor(AuthInterceptor(tokenStore))
         .addInterceptor(
@@ -38,7 +44,7 @@ class AppContainer(context: Context) {
 
     private val api: ApiService = retrofit.create(ApiService::class.java)
 
-    val authRepository = AuthRepository(api, tokenStore)
-    val episodeRepository = EpisodeRepository(api, context.applicationContext)
+    val authRepository = AuthRepository(api, tokenStore, database)
+    val episodeRepository = EpisodeRepository(api, context.applicationContext, database.cacheDao())
     val learningRepository = LearningRepository(api, json)
 }

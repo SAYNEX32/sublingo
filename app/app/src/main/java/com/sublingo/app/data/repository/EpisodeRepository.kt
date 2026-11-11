@@ -3,6 +3,10 @@ package com.sublingo.app.data.repository
 import android.content.Context
 import android.net.Uri
 import android.provider.OpenableColumns
+import com.sublingo.app.data.local.CacheDao
+import com.sublingo.app.data.local.toDto
+import com.sublingo.app.data.local.toEntity
+import com.sublingo.app.data.local.wordEntities
 import com.sublingo.app.data.remote.ApiResult
 import com.sublingo.app.data.remote.ApiService
 import com.sublingo.app.data.remote.EpisodeDto
@@ -10,6 +14,9 @@ import com.sublingo.app.data.remote.ReportDto
 import com.sublingo.app.data.remote.safeApiCall
 import java.io.IOException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MultipartBody
@@ -20,11 +27,35 @@ class PickedFile(val name: String, val bytes: ByteArray)
 class EpisodeRepository(
     private val api: ApiService,
     private val context: Context,
+    private val dao: CacheDao,
 ) {
-    suspend fun list(): ApiResult<List<EpisodeDto>> = safeApiCall { api.episodes() }
+    // The UI reads from the local database; the network only refreshes it.
+    val episodes: Flow<List<EpisodeDto>> =
+        dao.observeEpisodes().map { items -> items.map { it.toDto() } }
 
-    suspend fun report(episodeId: Int): ApiResult<ReportDto> =
-        safeApiCall { api.report(episodeId, REPORT_LIMIT, REPORT_TARGET) }
+    fun observeReport(episodeId: Int): Flow<ReportDto?> =
+        combine(dao.observeReport(episodeId), dao.observeReportWords(episodeId)) { report, words ->
+            report?.toDto(words)
+        }
+
+    suspend fun refreshEpisodes(): ApiResult<Unit> =
+        when (val result = safeApiCall { api.episodes() }) {
+            is ApiResult.Success -> {
+                dao.replaceEpisodes(result.value.map { it.toEntity() })
+                ApiResult.Success(Unit)
+            }
+            is ApiResult.Error -> result
+        }
+
+    suspend fun refreshReport(episodeId: Int): ApiResult<Unit> =
+        when (val result = safeApiCall { api.report(episodeId, REPORT_LIMIT, REPORT_TARGET) }) {
+            is ApiResult.Success -> {
+                val report = result.value
+                dao.replaceReport(report.toEntity(System.currentTimeMillis()), report.wordEntities())
+                ApiResult.Success(Unit)
+            }
+            is ApiResult.Error -> result
+        }
 
     suspend fun readFile(uri: Uri): PickedFile? = withContext(Dispatchers.IO) {
         try {

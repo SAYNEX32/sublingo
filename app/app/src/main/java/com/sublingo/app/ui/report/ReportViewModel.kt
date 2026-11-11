@@ -16,6 +16,7 @@ data class ReportUiState(
     val loading: Boolean = true,
     val report: ReportDto? = null,
     val error: String? = null,
+    val offline: Boolean = false,
 )
 
 class ReportViewModel(
@@ -27,16 +28,25 @@ class ReportViewModel(
     private val _state = MutableStateFlow(ReportUiState())
     val state: StateFlow<ReportUiState> = _state.asStateFlow()
 
+    init {
+        // Whatever is stored locally is shown immediately and updated live
+        viewModelScope.launch {
+            repository.observeReport(episodeId).collect { report ->
+                _state.update {
+                    it.copy(report = report, loading = if (report != null) false else it.loading)
+                }
+            }
+        }
+    }
+
     // Called on every screen resume, so the report refreshes after exercises
     fun load() {
         viewModelScope.launch {
-            _state.update { it.copy(loading = it.report == null, error = null) }
-            when (val result = repository.report(episodeId)) {
-                is ApiResult.Success -> _state.update {
-                    it.copy(loading = false, report = result.value)
-                }
+            _state.update { it.copy(loading = it.report == null, error = null, offline = false) }
+            when (val result = repository.refreshReport(episodeId)) {
+                is ApiResult.Success -> _state.update { it.copy(loading = false) }
                 is ApiResult.Error -> _state.update {
-                    it.copy(loading = false, error = result.message)
+                    it.copy(loading = false, error = result.message, offline = it.report != null)
                 }
             }
         }

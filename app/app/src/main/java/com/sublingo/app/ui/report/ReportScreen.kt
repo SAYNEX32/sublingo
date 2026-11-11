@@ -63,7 +63,7 @@ fun ReportScreen(
                 state.loading -> CircularProgressIndicator(
                     modifier = Modifier.align(Alignment.Center)
                 )
-                report != null -> ReportContent(report, onStartExercises)
+                report != null -> ReportContent(report, onStartExercises, state.offline)
                 else -> Column(
                     modifier = Modifier.align(Alignment.Center).padding(24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
@@ -78,7 +78,7 @@ fun ReportScreen(
 }
 
 @Composable
-private fun ReportContent(report: ReportDto, onStartExercises: (Int) -> Unit) {
+private fun ReportContent(report: ReportDto, onStartExercises: (Int) -> Unit, offline: Boolean) {
     val percent = String.format(Locale.getDefault(), "%.1f%%", report.coverage * 100)
     val targetPercent = (report.target * 100).roundToInt()
 
@@ -89,6 +89,14 @@ private fun ReportContent(report: ReportDto, onStartExercises: (Int) -> Unit) {
     ) {
         item {
             Column {
+                if (offline) {
+                    Text(
+                        "Нет связи с сервером. Показаны сохранённые данные",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                    Spacer(Modifier.height(8.dp))
+                }
                 Text("Вы понимаете примерно", style = MaterialTheme.typography.bodyMedium)
                 Text(percent, style = MaterialTheme.typography.displayMedium)
                 Spacer(Modifier.height(8.dp))
